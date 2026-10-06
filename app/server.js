@@ -34,7 +34,7 @@ app.get('/fetch-data', function (req, res) {
 
     let db = client.db(databaseName);
 
-    let myquery = { myid: 1 };
+    let myquery = { myid: 10 };
 
     db.collection(collectionName).findOne(myquery, function (err, result) {
       if (err) throw err;
