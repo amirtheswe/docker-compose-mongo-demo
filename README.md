@@ -19,10 +19,11 @@ The three services share the network Compose creates, so the app reaches the dat
 ## Run it
 
 1. Clone the repo and enter the folder.
-2. Copy the example settings and choose your own password:
+2. Create a `.env` file in the repo root, next to `docker-compose.yaml`, with your own password:
    ```
-   cp .env.example .env
+   printf "MONGO_USER=admin\nMONGO_PASSWORD=choose-a-password\n" > .env
    ```
+   The file is not in the repo, because it holds credentials and is listed in `.gitignore`.
 3. Build and start everything:
    ```
    docker compose up -d --build
@@ -64,7 +65,7 @@ docker compose down -v   # also deletes the data volume
 
 ## Configuration
 
-Credentials come from `.env`, which is listed in `.gitignore` and never committed. `.env.example` shows the variable names. The app reads `MONGO_DB_USERNAME` and `MONGO_DB_PWD`, and the Compose file fills them from `MONGO_USER` and `MONGO_PASSWORD`.
+Credentials come from the `.env` file you create in the repo root. It must sit next to `docker-compose.yaml`, not inside `app/`, because Compose only reads it from there and anything in `app/` is copied into the image. It holds two variables, `MONGO_USER` and `MONGO_PASSWORD`. The app reads `MONGO_DB_USERNAME` and `MONGO_DB_PWD`, and the Compose file fills them from `MONGO_USER` and `MONGO_PASSWORD`.
 
 Run `docker compose config` to see the final values Compose passes to each container.
 
@@ -87,7 +88,7 @@ app/
   package.json
 Dockerfile        builds the app image
 docker-compose.yaml
-.env.example      template for your own .env
+.env              your credentials (you create it; not committed)
 ```
 
 ## Credits
