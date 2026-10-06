@@ -1,45 +1,123 @@
+<!DOCTYPE html>
 <html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Amir Ismail - DevOps portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
-    .container {
-        margin: 40px auto;
-        width: 80%;
-    }
- 
-    hr {
-        width: 400px;
-        margin-left: 0;
-    }
-    h3 {
-        display: inline-block;
-    }
-    #static {
-        color: red;
-    }
-    #dynamic {
-        color: green;
-    }
+  :root { --fog:#e8eded; --ink:#13232b; --steel:#17606a; --steel-dark:#0f454d; --paint:#d9480f; --plate:#f8faf9;
+          --display:"Barlow Condensed","Arial Narrow",Impact,sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--fog); color:var(--ink); font:400 1.0625rem/1.65 "IBM Plex Sans",system-ui,sans-serif; }
+  main { max-width:64rem; margin:0 auto; padding:2rem 1.25rem 4rem; }
+  a { color:var(--steel); text-underline-offset:3px; } a:hover { color:var(--paint); }
+  :focus-visible { outline:3px solid var(--paint); outline-offset:3px; }
+  .wall { background:repeating-linear-gradient(90deg,rgba(255,255,255,.09) 0 7px,rgba(0,0,0,.12) 7px 14px),var(--steel);
+          box-shadow:inset 0 -10px 0 var(--steel-dark); color:#fff; border-radius:6px;
+          padding:clamp(2rem,7vw,4.5rem) clamp(1.25rem,5vw,3.5rem); }
+  .wall h1 { font:700 clamp(3.25rem,10vw,7rem)/.92 var(--display); letter-spacing:.01em; margin:0 0 1rem; }
+  .wall p { margin:0; max-width:34rem; font-size:1.25rem; }
+  .plate { background:var(--plate); border:2px solid var(--ink); border-radius:4px; padding:1rem 1.25rem 1.1rem; }
+  .plate.live { border-color:var(--paint); margin:1.5rem 0 3rem; }
+  .plate h3 { font:600 1.4rem/1.2 var(--display); letter-spacing:.02em; margin:0 0 .4rem; }
+  .plate p { margin:0 0 .6rem; }
+  .plate output { display:block; font-weight:500; overflow-wrap:anywhere; }
+  .plate small { color:#4a5c64; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(18rem,1fr)); gap:1rem; }
+  .tags { display:flex; flex-wrap:wrap; gap:.4rem; margin:0; }
+  .tags span { border:1px solid var(--ink); border-radius:3px; padding:0 .45rem; font-size:.875rem; }
+  h2 { font:700 2rem/1.1 var(--display); margin:0 0 .75rem; }
+  section { margin-bottom:3rem; } section > p, #about p { max-width:40rem; margin:0 0 1rem; }
+  dl { display:grid; grid-template-columns:12rem 1fr; gap:.7rem 1.5rem; max-width:48rem; margin:0; }
+  dt { font-weight:500; } dt small { display:block; font-weight:400; color:#4a5c64; } dd { margin:0; }
+  @media (max-width:34rem) { dl { grid-template-columns:1fr; gap:0; } dd { margin-bottom:.9rem; } }
+  footer { border-top:2px solid var(--ink); padding-top:1rem; display:flex; flex-wrap:wrap; gap:.5rem 1.5rem; }
+  @media (prefers-reduced-motion:no-preference) { .arrived { animation:stamp .4s ease-out; } @keyframes stamp { from { opacity:0; transform:scale(1.04); } } }
 </style>
-<script>
-    (async function init() {
-        const cont = document.getElementById('container');
-        const response = await fetch('http://localhost:3000/fetch-data', {
-            method: "GET",
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            }
-        });
-        const jsonResponse = await response.json();
-        document.getElementById('dynamic').textContent = jsonResponse.data;
-    })();
-</script>
+</head>
 <body>
-    <div class='container' id='container'>
-        <h1>Welcome to this Super Sophisticated App</h1>
-        <span>Some static data:  </span><h3 id="static">this is hard-coded in index.html</h3>
-        <hr />
-        <span>Data from MongoDB:  </span><h3 id="dynamic"></h3>
-        <hr />
-    </div>
+<main>
+  <header class="wall">
+    <h1>Amir Ismail</h1>
+    <p id="headline">DevOps engineer in training.</p>
+  </header>
+
+  <div class="plate live">
+    <h3>Read from MongoDB</h3>
+    <output id="status">Loading...</output>
+    <small>Everything below this box is stored in the database. Edit it in mongo-express on port 8081 and reload.</small>
+  </div>
+
+  <section><h2>About me</h2><div id="about"></div></section>
+  <section><h2>Projects</h2><div id="projects" class="grid"></div></section>
+  <section><h2>Skills</h2><dl id="skills"></dl></section>
+  <section><h2>Experience and education</h2><dl id="experience"></dl></section>
+
+  <section>
+    <h2>How this page is built</h2>
+    <dl>
+      <dt>Static</dt><dd>The name above and this section are written in index.html.</dd>
+      <dt>Dynamic</dt><dd>Everything else is fetched from /api/portfolio, which reads four MongoDB collections.</dd>
+      <dt>Compose</dt><dd>One file starts the Node app, MongoDB with a data volume, and mongo-express.</dd>
+    </dl>
+  </section>
+
+  <footer id="links"></footer>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  const STATUS = { working: 'Using it now', learning: 'Learning', next: 'Up next' };
+
+  (async function init() {
+    try {
+      const res = await fetch('/api/portfolio');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const d = await res.json();
+
+      if (d.profile.headline) $('headline').textContent = d.profile.headline;
+      (d.profile.summary || []).forEach((t) => $('about').append(el('p', null, t)));
+
+      d.projects.forEach((p) => {
+        const box = el('div', 'plate'), h = el('h3');
+        if (p.url) { const a = el('a', null, p.name); a.href = p.url; h.append(a); } else { h.textContent = p.name; }
+        const tags = el('p', 'tags');
+        (p.tags || []).forEach((t) => tags.append(el('span', null, t)));
+        box.append(h, el('p', null, p.summary), tags);
+        $('projects').append(box);
+      });
+
+      d.skills.forEach((s) => {
+        const dt = el('dt', null, s.group);
+        dt.append(el('small', null, STATUS[s.status] || s.status));
+        $('skills').append(dt, el('dd', null, (s.items || []).join(', ')));
+      });
+
+      d.experience.forEach((x) => {
+        const dd = el('dd');
+        dd.append(el('strong', null, x.role), document.createTextNode(', ' + x.place));
+        if (x.note) dd.append(el('br'), document.createTextNode(x.note));
+        $('experience').append(el('dt', null, x.period), dd);
+      });
+
+      (d.profile.links || []).forEach((l) => { const a = el('a', null, l.label); a.href = l.url; $('links').append(a); });
+
+      $('status').textContent = d.projects.length + ' projects, ' + d.skills.length + ' skill groups and ' +
+        d.experience.length + ' experience entries loaded just now.';
+      $('status').classList.add('arrived');
+    } catch (err) {
+      $('status').textContent = "Can't reach /api/portfolio. Run docker compose logs my-app to see why.";
+    }
+  })();
+</script>
 </body>
 </html>

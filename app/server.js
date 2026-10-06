@@ -1,53 +1,64 @@
-let express = require('express');
-let path = require('path');
-let fs = require('fs');
-let MongoClient = require('mongodb').MongoClient;
-let bodyParser = require('body-parser');
-let app = express();
+const express = require('express');
+const path = require('path');
+const { MongoClient } = require('mongodb');
+const seed = require('./seed-data');
 
-const DB_USER = process.env.MONGO_DB_USERNAME
-const DB_PASS = process.env.MONGO_DB_PWD
+const user = encodeURIComponent(process.env.MONGO_DB_USERNAME || '');
+const pwd = encodeURIComponent(process.env.MONGO_DB_PWD || '');
+const host = process.env.MONGO_HOST || 'mongodb'; // the Compose service name
+const dbName = process.env.DB_NAME || 'portfolio';
+const url = `mongodb://${user}:${pwd}@${host}:27017`;
 
-app.use(bodyParser.urlencoded({
-  extended: true
-}));
-app.use(bodyParser.json());
+const app = express();
+let db;
 
-app.get('/', function (req, res) {
-    res.sendFile(path.join(__dirname, "index.html"));
-  });
+// depends_on only waits for the container to start, not for Mongo to be ready,
+// so retry for a while instead of crashing.
+async function connect() {
+  for (let attempt = 1; attempt <= 15; attempt++) {
+    try {
+      const client = new MongoClient(url, { serverSelectionTimeoutMS: 3000 });
+      await client.connect();
+      return client.db(dbName);
+    } catch (err) {
+      console.log(`MongoDB not ready (${attempt}/15): ${err.message}`);
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+  }
+  throw new Error('Could not connect to MongoDB');
+}
 
-// when starting app locally, use "mongodb://admin:password@localhost:27017" URL instead
-let mongoUrlDockerCompose = `mongodb://${DB_USER}:${DB_PASS}@mongodb`;
+async function seedIfEmpty() {
+  for (const [name, docs] of Object.entries(seed)) {
+    const collection = db.collection(name);
+    if ((await collection.countDocuments()) === 0) {
+      await collection.insertMany(docs);
+      console.log(`Seeded ${docs.length} documents into ${name}`);
+    }
+  }
+}
 
-// pass these options to mongo client connect request to avoid DeprecationWarning for current Server Discovery and Monitoring engine
-let mongoClientOptions = { useNewUrlParser: true, useUnifiedTopology: true };
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-// the following db and collection will be created on first connect
-let databaseName = "my-db";
-let collectionName = "my-collection";
-
-app.get('/fetch-data', function (req, res) {
-  let response = {};
-  MongoClient.connect(mongoUrlDockerCompose, mongoClientOptions, function (err, client) {
-    if (err) throw err;
-
-    let db = client.db(databaseName);
-
-    let myquery = { myid: 10 };
-
-    db.collection(collectionName).findOne(myquery, function (err, result) {
-      if (err) throw err;
-      response = result;
-      client.close();
-
-      // Send response
-      res.send(response ? response : {});
-    });
-  });
+app.get('/api/portfolio', async (req, res) => {
+  try {
+    const load = (name) =>
+      db.collection(name).find({}, { projection: { _id: 0 } }).sort({ order: 1 }).toArray();
+    const [profile, experience, projects, skills] = await Promise.all([
+      load('profile'), load('experience'), load('projects'), load('skills')
+    ]);
+    res.json({ profile: profile[0] || {}, experience, projects, skills });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not read from MongoDB' });
+  }
 });
 
-app.listen(3000, function () {
-  console.log("app listening on port 3000!");
+(async () => {
+  db = await connect();
+  await seedIfEmpty();
+  app.listen(3000, () => console.log('app listening on port 3000!'));
+})().catch((err) => {
+  console.error(err);
+  process.exit(1);
 });
-
