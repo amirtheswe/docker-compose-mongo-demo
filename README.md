@@ -40,3 +40,4 @@ Step 4: Access you nodejs application UI from browser
 
     http://localhost:3000
     
+# docker-compose-mongo-demo
