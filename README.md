@@ -91,6 +91,10 @@ docker-compose.yaml
 .env              your credentials (you create it; not committed)
 ```
 
+## Docker image
+
+Pre-built image on [Docker Hub](https://hub.docker.com/r/amirtheswe/docker-compose-mongo-demo): `docker pull amirtheswe/docker-compose-mongo-demo`. It needs a running MongoDB, so use the Compose file in this repo to start both.
+
 ## Credits
 
 Original tutorial app by Nana Janashia (TechWorld with Nana). Changes and content by Amir Ismail.
